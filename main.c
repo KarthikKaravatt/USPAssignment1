@@ -14,40 +14,37 @@ int openFile(char *fileName, int flags) {
   }
   return fileDiscriptor;
 }
-void printFile(char *filename) {
-  char buf;
-  int file = openFile(filename, O_RDWR | O_RDONLY);
-  while (read(file, &buf, 1)) {
-    printf("%s", &buf);
-  }
-  close(file);
-}
-char **listFiles(char *directoryName) {
+
+int listNumberOfFiles(char *directoryName) {
   struct dirent *dp;
-  int numberOfFiles = 0;
+  int files = 0;
   DIR *dirp = opendir(directoryName);
   dp = readdir(dirp);
   while (dp != NULL) {
 
     char *foundFile = strrchr(dp->d_name, '.');
     if (foundFile && strcmp(foundFile, ".usp") == 0) {
-      numberOfFiles++;
+      files++;
     }
     dp = readdir(dirp);
   }
   closedir(dirp);
-  char **files;
-  files = malloc(numberOfFiles * sizeof(char *));
+  return files;
+}
+
+char **listFiles(int numberOfFiles, char *directoryName) {
+  char **files = malloc(sizeof(char *) * numberOfFiles);
+  struct dirent *dp;
+  DIR *dirp = opendir(directoryName);
   int counter = 0;
-  dirp = opendir(directoryName);
   dp = readdir(dirp);
   while (dp != NULL) {
 
     char *foundFile = strrchr(dp->d_name, '.');
     if (foundFile && strcmp(foundFile, ".usp") == 0) {
-      files[counter] = malloc(strlen(dp->d_name) + 1 * sizeof(char));
-      files[counter] = dp->d_name;
-      counter++;
+        files[counter] = malloc(sizeof(char)*256);
+        strcpy(files[counter], dp->d_name);
+        counter++;
     }
     dp = readdir(dirp);
   }
@@ -55,13 +52,13 @@ char **listFiles(char *directoryName) {
   return files;
 }
 int main(void) {
-    char** files = listFiles("./");
-    for(int i = 0; i <4; i++){
+    int numberOfFiles = listNumberOfFiles("./"); 
+    char** files = listFiles(numberOfFiles , "./");
+    for (int i = 0; i < numberOfFiles; i++) {
         printf("%s\n", files[i]);
     }
-    for(int i = 0; i <4; i++){
+    for (int i = 0; i < numberOfFiles; i++) {
         free(files[i]);
     }
     free(files);
-  return 0;
 }
