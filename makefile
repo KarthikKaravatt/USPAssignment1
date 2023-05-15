@@ -1,14 +1,14 @@
 CC = gcc
 LD = gcc
 CFLAGS = -g 
-LFLAGS = -lm -s
+LFLAGS = -g
 OBJ = main.o 
 EXEC = calculator
 $(EXEC): $(OBJ)
-	$(LD) $(LFLAGS) $(OBJ) -o $(EXEC)
+	$(LD) $(LFLAGS) $(OBJ) -g -o $(EXEC)
 
 main.o: main.c 
-	$(CC) -c main.c
+	$(CC) -g -c main.c
 
 
 clean:
