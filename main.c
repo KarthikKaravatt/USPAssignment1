@@ -146,6 +146,8 @@ int main(void) {
       exit(0);
     }
   }
+  // sleep just in case
+  sleep(1);
   // only parent executes this part
   Result result;
   // writes results from each file descriptor to file
