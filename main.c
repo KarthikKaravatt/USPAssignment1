@@ -40,22 +40,22 @@ Result evaluate_file(char *filename) {
   int fileRead = read(file1, buffer, sizeof(buffer));
   close(file1);
   // split file contents using new line character
-  char *token = strtok(buffer, "\n");
+  char *line= strtok(buffer, "\n");
   Result res;
   // first line of the file is the id of file
   // copy this string to the id section in the result struct
   // make sure there is room for the \0
-  strncpy(res.id, token, 100 - 1);
+  strncpy(res.id, line, 100 - 1);
   res.id[100 - 1] = '\0';
   // get next line and add it to the first operand
-  token = strtok(NULL, "\n");
-  int operand1 = atoi(token);
+  line = strtok(NULL, "\n");
+  int operand1 = atoi(line);
   // get next line and add it to the operator
-  token = strtok(NULL, "\n");
-  char operator= token[0];
+  line = strtok(NULL, "\n");
+  char operator= line[0];
   // get next line and add it to the second operator
-  token = strtok(NULL, "\n");
-  int operand2 = atoi(token);
+  line = strtok(NULL, "\n");
+  int operand2 = atoi(line);
   int result;
   // evaluate result
   switch (operator) {
