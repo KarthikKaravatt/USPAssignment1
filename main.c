@@ -35,11 +35,9 @@ int listNumberOfFiles(char *directoryName) {
 Result evaluate_file(char *filename) {
   // open file in read only mode
   int file1 = open(filename, O_RDONLY);
-  // file buffer
   char buffer[1000];
   // read file into buffer
   int fileRead = read(file1, buffer, sizeof(buffer));
-  // close file
   close(file1);
   // split file contents using new line character
   char *token = strtok(buffer, "\n");
@@ -80,11 +78,10 @@ Result evaluate_file(char *filename) {
 void writeResultTofile(Result res) {
   // open file
   int file2 = open("results", O_WRONLY | O_CREAT | O_APPEND, 0777);
-  // results buffer
-  char result_str[200];
-  sprintf(result_str, "%s: %d\n", res.id, res.result);
+  char result[200];
+  sprintf(result, "%s: %d\n", res.id, res.result);
   // print to file
-  write(file2, result_str, strlen(result_str));
+  write(file2, result, strlen(result));
   close(file2);
 }
 char **listFiles(int numberOfFiles, char *directoryName) {
@@ -98,7 +95,6 @@ char **listFiles(int numberOfFiles, char *directoryName) {
   dp = readdir(dirp);
   // add all usp files to array
   while (dp != NULL) {
-
     char *foundFile = strrchr(dp->d_name, '.');
     if (foundFile && strcmp(foundFile, ".usp") == 0) {
       // dp name has a max of 256 characters
@@ -119,45 +115,51 @@ int main(void) {
   // store file names in a array
   char **files = listFiles(numberOfFiles, "./");
   // create file descriptors, 2 for each file (read and write)
-  int fd[2 * numberOfFiles];
+  // one array for each file
+  int fd[numberOfFiles][2];
   // pipe for each file
   int id;
+  int fileNum = 0;
   for (int i = 0; i < numberOfFiles; i++) {
-    // calcualtes index of file descriptor
-    // and gives address of it
-    if (pipe(fd + 2 * i) == -1) {
+    // create a pipe for each file
+    if (pipe(fd[i]) == -1) {
       printf("Error occured with pipe");
     }
   }
-  // create a process to evaluate each file
+  // creating child processes for each file
   for (int i = 0; i < numberOfFiles; i++) {
     id = fork();
     if (id == -1) {
       printf("Error ocurred while forking");
     }
+    // stops child from creating more processes
     if (id == 0) {
-      // close read pipe because not using it
-      close(fd[2 * i]);
-      Result result = evaluate_file(files[i]);
-      // accessing the write fd by incrementing by one
-      write(fd[2 * i + 1], &result, sizeof(Result));
-      close(fd[2 * i + 1]);
-      // child process stop execution after file is evaluated
-      exit(0);
+      fileNum = i;
+      break;
     }
+    // each child has a different file
   }
-  // sleep just in case
-  sleep(1);
+  if (id == 0) {
+    // close read pipe because not using it
+    close(fd[fileNum][0]);
+    Result result = evaluate_file(files[fileNum]);
+    // accessing the write fd by incrementing by one
+    write(fd[fileNum][1], &result, sizeof(Result));
+    close(fd[fileNum][1]);
+    // child process stop execution after file is evaluated
+    exit(0);
+  }
   // only parent executes this part
   Result result;
   // writes results from each file descriptor to file
   for (int i = 0; i < numberOfFiles; i++) {
     // close write pipe because not using it
-    close(fd[2 * i + 1]);
-    read(fd[2 * i], &result, sizeof(Result));
+    close(fd[i][1]);
+    // read will block until data is available so no need for sleep
+    read(fd[i][0], &result, sizeof(Result));
     writeResultTofile(result);
     // close read pipe
-    close(fd[2 * i]);
+    close(fd[i][0]);
   }
   // wait for child process to die
   wait(&id);
