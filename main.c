@@ -40,7 +40,7 @@ Result evaluate_file(char *filename) {
   int fileRead = read(file1, buffer, sizeof(buffer));
   close(file1);
   // split file contents using new line character
-  char *line= strtok(buffer, "\n");
+  char *line = strtok(buffer, "\n");
   Result res;
   // first line of the file is the id of file
   // copy this string to the id section in the result struct
@@ -114,15 +114,20 @@ int main(void) {
   int numberOfFiles = listNumberOfFiles("./");
   // store file names in a array
   char **files = listFiles(numberOfFiles, "./");
-  // create file descriptors, 2 for each file (read and write)
-  // one array for each file
-  int fd[numberOfFiles][2];
+  // two pipes for each file
+  // one for resutls and another for fileName
+  // 2d array having 0 for read end and 1 for write end
+  int fileNamePipe[numberOfFiles][2];
+  int resultPipe[numberOfFiles][2];
   // pipe for each file
   int id;
   int fileNum = 0;
   for (int i = 0; i < numberOfFiles; i++) {
-    // create a pipe for each file
-    if (pipe(fd[i]) == -1) {
+    // create a 2 pipes for each file
+    if (pipe(fileNamePipe[i]) == -1) {
+      printf("Error occured with pipe");
+    }
+    if (pipe(resultPipe[i]) == -1) {
       printf("Error occured with pipe");
     }
   }
@@ -137,32 +142,40 @@ int main(void) {
       fileNum = i;
       break;
     }
-    // each child has a different file
+    // file name written to file name pipe
+    write(fileNamePipe[i][1], files[i], strlen(files[i]));
+    close(fileNamePipe[i][1]);
   }
   if (id == 0) {
+    // close write pipe because not using it
+    close(fileNamePipe[fileNum][1]);
+    // must initalize or else a valgrind error 
+    char file[500] = " ";
+    read(fileNamePipe[fileNum][0], file, sizeof(file));
+    close(fileNamePipe[fileNum][0]);
     // close read pipe because not using it
-    close(fd[fileNum][0]);
-    Result result = evaluate_file(files[fileNum]);
-    // accessing the write fd by incrementing by one
-    write(fd[fileNum][1], &result, sizeof(Result));
-    close(fd[fileNum][1]);
+    close(resultPipe[fileNum][0]);
+    Result result = evaluate_file(file);
+    write(resultPipe[fileNum][1], &result, sizeof(Result));
+    close(resultPipe[fileNum][1]);
     // child process stop execution after file is evaluated
-    exit(0);
   }
   // only parent executes this part
-  Result result;
-  // writes results from each file descriptor to file
-  for (int i = 0; i < numberOfFiles; i++) {
-    // close write pipe because not using it
-    close(fd[i][1]);
-    // read will block until data is available so no need for sleep
-    read(fd[i][0], &result, sizeof(Result));
-    writeResultTofile(result);
-    // close read pipe
-    close(fd[i][0]);
+  else {
+    Result result;
+    // writes results from each file descriptor to file
+    for (int i = 0; i < numberOfFiles; i++) {
+      // close write pipe because not using it 
+      close(resultPipe[i][1]);
+      read(resultPipe[i][0], &result, sizeof(Result));
+      writeResultTofile(result);
+      // close read pipe
+      close(resultPipe[i][0]);
+    }
+    for (int i = 0; i < numberOfFiles; i++) {
+      wait(NULL);
+    }
   }
-  // wait for child process to die
-  wait(&id);
   // memory clean up
   for (int i = 0; i < numberOfFiles; i++) {
     free(files[i]);

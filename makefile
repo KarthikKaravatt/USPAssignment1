@@ -15,6 +15,6 @@ clean:
 	$(RM) $(EXEC) $(OBJ)
 
 val:
-	valgrind --leak-check=full -s ./$(EXEC)
+	valgrind --leak-check=full --trace-children=yes -s ./$(EXEC)
 
 # DO NOT DELETE
