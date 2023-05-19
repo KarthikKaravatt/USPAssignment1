@@ -175,6 +175,7 @@ int main(void) {
       // close read pipe
       close(resultPipe[i][0]);
     }
+    // wait for all child process to die
     for (int i = 0; i < numberOfFiles; i++) {
       wait(NULL);
     }
