@@ -142,6 +142,9 @@ int main(void) {
       fileNum = i;
       break;
     }
+    // only parent exexcutes this part 
+    // close read pipe as it is not used 
+    close(fileNamePipe[i][0]);
     // file name written to file name pipe
     write(fileNamePipe[i][1], files[i], strlen(files[i]));
     close(fileNamePipe[i][1]);
