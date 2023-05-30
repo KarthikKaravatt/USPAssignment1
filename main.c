@@ -78,6 +78,9 @@ Result evaluate_file(char *filename) {
 void writeResultTofile(Result res) {
   // open file
   int file2 = open("results", O_WRONLY | O_CREAT | O_APPEND, 0777);
+  if (file2 == -1) {
+    printf("Error opening file");
+  }
   char result[200];
   sprintf(result, "%s: %d\n", res.id, res.result);
   // print to file
